@@ -44,7 +44,7 @@ defmodule Waffle.Storage.Azure do
     file_name =
       Waffle.Definition.Versioning.resolve_file_name(definition, version, file_and_scope)
 
-    Path.join(destination_dir, file_name)
+    Path.join(destination_dir, file_name) |> String.replace(~r/\s+/, "_") |> String.trim()
   end
 
   defp do_put(file, store_path, params \\ [])
