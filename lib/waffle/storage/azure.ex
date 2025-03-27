@@ -3,7 +3,10 @@ defmodule Waffle.Storage.Azure do
 
   def put(definition, version, {file, scope}) do
     destination_dir = definition.storage_dir(version, {file, scope})
-    full_store_path = Path.join(destination_dir, file.file_name)
+
+    full_store_path =
+      Path.join(destination_dir, file.file_name) |> String.replace(~r/\s+/, "_") |> String.trim()
+
     do_put(file, full_store_path)
   end
 
