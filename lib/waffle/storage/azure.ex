@@ -15,7 +15,7 @@ defmodule Waffle.Storage.Azure do
     container = Azurex.Blob.Config.default_container()
 
     case Keyword.get(options, :signed, false) do
-      false -> Azurex.Blob.get_url(container, path)
+      false -> Azurex.Blob.get_url(options, path)
       true -> build_signed_url(container, path, options)
     end
   end
