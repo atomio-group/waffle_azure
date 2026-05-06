@@ -1,5 +1,8 @@
 defmodule Waffle.Storage.Azure do
+  require Logger
+
   @default_expiry_time 60 * 5
+  @chunk_size 1_024 * 1_024
 
   def put(definition, version, {file, scope}) do
     destination_dir = definition.storage_dir(version, {file, scope})
@@ -51,22 +54,39 @@ defmodule Waffle.Storage.Azure do
 
   defp do_put(file = %Waffle.File{binary: file_binary}, store_path, params)
        when is_binary(file_binary) do
-    Azurex.Blob.put_blob(store_path, file_binary, MIME.from_path(file.file_name), params)
-
-    {:ok, file.file_name}
+    Azurex.Blob.put_blob(
+      store_path,
+      file_binary,
+      MIME.from_path(file.file_name),
+      Azurex.Blob.Config.default_container(),
+      params
+    )
+    |> handle_put_result(file)
+  rescue
+    e -> log_and_wrap_error(e)
   end
 
   defp do_put(file, store_path, params) do
-    file_stream = File.stream!(file.path)
+    file_stream = File.stream!(file.path, [], @chunk_size)
 
     Azurex.Blob.put_blob(
       store_path,
       {:stream, file_stream},
-      "application/octet-stream",
+      MIME.from_path(file.file_name),
       Azurex.Blob.Config.default_container(),
       params
     )
+    |> handle_put_result(file)
+  rescue
+    e -> log_and_wrap_error(e)
+  end
 
-    {:ok, file.file_name}
+  defp handle_put_result(:ok, file), do: {:ok, file.file_name}
+  defp handle_put_result({:ok, _}, file), do: {:ok, file.file_name}
+  defp handle_put_result({:error, _} = err, _file), do: err
+
+  defp log_and_wrap_error(error) do
+    Logger.error("waffle_azure put failed: #{inspect(error)}")
+    {:error, :upload_failed}
   end
 end
