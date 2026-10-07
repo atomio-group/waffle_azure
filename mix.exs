@@ -22,7 +22,7 @@ defmodule WaffleAzure.MixProject do
   defp deps do
     [
       {:waffle, "~> 1.1"},
-      {:azurex, github: "jakobht/azurex"},
+      {:azurex, github: "atomio-group/azurex", tag: "1.1.0-1"},
       {:mime, "~> 2.0"}
     ]
   end
