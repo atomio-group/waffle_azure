@@ -4,7 +4,7 @@ defmodule WaffleAzure.MixProject do
   def project do
     [
       app: :waffle_azure,
-      version: "0.1.6",
+      version: "0.1.7",
       elixir: "~> 1.16",
       start_permanent: Mix.env() == :prod,
       deps: deps()
@@ -22,7 +22,7 @@ defmodule WaffleAzure.MixProject do
   defp deps do
     [
       {:waffle, "~> 1.1"},
-      {:azurex, github: "atomio-group/azurex", tag: "1.1.0-1"},
+      {:azurex, github: "atomio-group/azurex", tag: "1.1.0-2-dev"},
       {:mime, "~> 2.0"}
     ]
   end
