@@ -2,7 +2,7 @@ defmodule Waffle.Storage.Azure do
   require Logger
 
   @default_expiry_time 60 * 5
-  @chunk_size 1_024 * 1_024
+  @chunk_size 8 * 1_024 * 1_024
 
   def put(definition, version, {file, scope}) do
     destination_dir = definition.storage_dir(version, {file, scope})
