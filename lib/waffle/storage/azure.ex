@@ -3,6 +3,7 @@ defmodule Waffle.Storage.Azure do
 
   @default_expiry_time 60 * 5
   @chunk_size 8 * 1_024 * 1_024
+  @max_stream_put_attempts 3
 
   def put(definition, version, {file, scope}) do
     destination_dir = definition.storage_dir(version, {file, scope})
@@ -67,19 +68,37 @@ defmodule Waffle.Storage.Azure do
   end
 
   defp do_put(file, store_path, params) do
-    file_stream = File.stream!(file.path, [], @chunk_size)
-
-    Azurex.Blob.put_blob(
-      store_path,
-      {:stream, file_stream},
-      MIME.from_path(file.file_name),
-      Azurex.Blob.Config.default_container(),
-      params
-    )
+    file
+    |> put_file_stream(store_path, params)
     |> handle_put_result(file)
   rescue
     e -> log_and_wrap_error(e)
   end
+
+  defp put_file_stream(file, store_path, params, attempt \\ 1) do
+    result =
+      Azurex.Blob.put_blob(
+        store_path,
+        {:stream, File.stream!(file.path, [], @chunk_size)},
+        MIME.from_path(file.file_name),
+        Azurex.Blob.Config.default_container(),
+        params
+      )
+
+    if invalid_block_list?(result) and attempt < @max_stream_put_attempts do
+      put_file_stream(file, store_path, params, attempt + 1)
+    else
+      result
+    end
+  end
+
+  defp invalid_block_list?({:error, %HTTPoison.Response{status_code: 400, headers: headers}}) do
+    Enum.any?(headers, fn {name, value} ->
+      String.downcase(name) == "x-ms-error-code" and value == "InvalidBlockList"
+    end)
+  end
+
+  defp invalid_block_list?(_result), do: false
 
   defp handle_put_result(:ok, file), do: {:ok, file.file_name}
   defp handle_put_result({:ok, _}, file), do: {:ok, file.file_name}
